@@ -62,6 +62,7 @@ class LQRayShiftNN(torch.nn.Module):
                  P: torch.Tensor, q: torch.Tensor, b_quad: torch.Tensor,
                  point: torch.Tensor,
                  normalize_rays: bool = True,
+                 onto_edge: bool = False,
                  to_01_mode: Literal['sigmoid', 'relu1'] = 'sigmoid'):
         super().__init__()
         self.A = A
@@ -71,6 +72,7 @@ class LQRayShiftNN(torch.nn.Module):
         self.b_quad = b_quad
         self.point = point
         self.normalize_rays = normalize_rays
+        self.onto_edge = onto_edge
 
         if to_01_mode == 'sigmoid':
             self.sigmoid = torch.nn.Sigmoid()
@@ -168,7 +170,10 @@ class LQRayShiftNN(torch.nn.Module):
             self.get_max_length_linear(ps, norm_rays),
             self.get_max_length_quadratic(ps, norm_rays),
         )
-        ls = betas * max_lengths
+        if not self.onto_edge:
+            ls = betas * max_lengths
+        else:
+            ls = (1.0 + betas * 0.0) * max_lengths  # provide zero gradients for `length_scale`
         xs = ps + ls.unsqueeze(1) * norm_rays
         return xs  # , norm_rays, max_lengths, ps
 
@@ -195,6 +200,9 @@ class LQCenterProjectionNN(LQRayShiftNN):
             self.get_max_length_linear(ps, norm_rays),
             self.get_max_length_quadratic(ps, norm_rays),
         )
-        ls = torch.minimum(lengths.squeeze(1), max_lengths)
+        if not self.onto_edge:
+            ls = torch.minimum(lengths.squeeze(1), max_lengths)
+        else:
+            ls = max_lengths
         xs = ps + ls.unsqueeze(1) * norm_rays
         return xs  # , norm_rays, max_lengths, ps

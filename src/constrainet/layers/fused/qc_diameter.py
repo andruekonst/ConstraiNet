@@ -96,6 +96,7 @@ class QCCenterDiameterBasedNN(torch.nn.Module):
                  point: torch.Tensor,
                  nonnegative_mode: Literal['sqr', 'abs'] = 'sqr',
                  normalize_rays: bool = True,
+                 onto_edge: bool = False,
                  to_01_mode: Literal['sigmoid', 'relu1'] = 'sigmoid'):
         super().__init__()
         self.P = P
@@ -103,6 +104,7 @@ class QCCenterDiameterBasedNN(torch.nn.Module):
         self.b = b
         self.point = point
         self.normalize_rays = normalize_rays
+        self.onto_edge = onto_edge
 
         self.to_nonnegative = make_nonnegative_op(nonnegative_mode)
         if to_01_mode == 'sigmoid':
@@ -179,7 +181,10 @@ class QCCenterDiameterBasedNN(torch.nn.Module):
 
         betas = self.sigmoid(length_scale)
         max_lengths = self.get_max_length(ps, norm_rays)
-        ls = betas * max_lengths
+        if not self.onto_edge:
+            ls = betas * max_lengths
+        else:
+            ls = (1.0 + betas * 0.0) * max_lengths  # provide zero gradients for `length_scale`
         xs = ps + ls.unsqueeze(1) * norm_rays
         return xs  # , norm_rays, max_lengths, ps
 
@@ -250,12 +255,14 @@ class QCProjectionCenterDiameterNN(torch.nn.Module):
     """
     def __init__(self, P: torch.Tensor, q: torch.Tensor, b: torch.Tensor,
                  point: torch.Tensor,
+                 onto_edge: bool = False,
                  nonnegative_mode: str = 'ignored'):
         super().__init__()
         self.P = P
         self.q = q
         self.b = b
         self.point = point
+        self.onto_edge = onto_edge
 
     def get_max_length(self, points: torch.Tensor,
                        rays: torch.Tensor,
@@ -328,7 +335,10 @@ class QCProjectionCenterDiameterNN(torch.nn.Module):
         ps = self.point.unsqueeze(0).repeat(zs.shape[0], 1)
 
         max_lengths = self.get_max_length(ps, norm_rays)
-        ls = torch.minimum(lengths.squeeze(1), max_lengths)
+        if not self.onto_edge:
+            ls = torch.minimum(lengths.squeeze(1), max_lengths)
+        else:
+            ls = max_lengths
         xs = ps + ls.unsqueeze(1) * norm_rays
         return xs  # , norm_rays, max_lengths, ps
 

@@ -157,7 +157,21 @@ def make_constraint_set(constraints: ConstraintsOrList):
 
 class ConstraiNetLayer(Module):
     def __init__(self, constraints: Union[ConstraintsOrList, ConstraintSet],
-                 mode: Literal['ray_shift', 'center_projection'] = 'ray_shift'):
+                 mode: Literal['ray_shift', 'center_projection'] = 'ray_shift',
+                 onto_edge: bool = False):
+        """Neural network layer with constrained outputs.
+
+        Args:
+            constraints: List of constraints, one constraint or a constraint set.
+            mode: Layer operation mode, default = 'ray_shift' which means that
+                  a part of input is considered as a ray (direction) and another
+                  part is a scaling parameter.
+                  Another mode is 'center_projection', when the layer maps
+                  inputs to the domain by central projection.
+            onto_edge: Whether projection should be to the domain, or to its edge.
+                       By default is False.
+
+        """
         super().__init__()
         if isinstance(constraints, ConstraintSet):
             self.constraint_set = constraints
@@ -165,6 +179,7 @@ class ConstraiNetLayer(Module):
             self.constraint_set = make_constraint_set(constraints)
         self.n_features = self.constraint_set.n_features
         self.mode = mode
+        self.onto_edge = onto_edge
         self.__init_implementation()
 
     def __init_implementation(self):
@@ -180,6 +195,7 @@ class ConstraiNetLayer(Module):
                 torch.tensor(self.constraint_set.linear.A, dtype=torch.double),
                 torch.tensor(self.constraint_set.linear.b, dtype=torch.double),
                 torch.tensor(self.constraint_set.interior_point, dtype=torch.double),
+                onto_edge=self.onto_edge,
             )
         elif self.constraint_set.is_quadratic():
             MODE_ROUTE = {
@@ -194,6 +210,7 @@ class ConstraiNetLayer(Module):
                 torch.tensor(self.constraint_set.quadratic.q, dtype=torch.double),
                 torch.tensor(self.constraint_set.quadratic.b, dtype=torch.double),
                 torch.tensor(self.constraint_set.interior_point, dtype=torch.double),
+                onto_edge=self.onto_edge,
             )
         else:  # both type of constraints
             MODE_ROUTE = {
@@ -210,6 +227,7 @@ class ConstraiNetLayer(Module):
                 torch.tensor(self.constraint_set.quadratic.q, dtype=torch.double),
                 torch.tensor(self.constraint_set.quadratic.b, dtype=torch.double),
                 torch.tensor(self.constraint_set.interior_point, dtype=torch.double),
+                onto_edge=self.onto_edge,
             )
         self.implementation = impl
 
@@ -253,9 +271,10 @@ class DenseConstraiNet(Module):
     def __init__(self, input_dim: int, hidden_dim: int, n_layers: int,
                  constraints: ConstraintsOrList,
                  mode: Literal['ray_shift', 'center_projection'] = 'ray_shift',
+                 onto_edge: bool = False,
                  make_activation: Callable[[], Callable[[torch.Tensor], torch.Tensor]] = torch.nn.ReLU):
         super().__init__()
-        self.out_constrained_layer = ConstraiNetLayer(constraints, mode)
+        self.out_constrained_layer = ConstraiNetLayer(constraints, mode, onto_edge=onto_edge)
         self.dense = make_feed_forward_network(
             input_dim=input_dim,
             hidden_dim=hidden_dim,

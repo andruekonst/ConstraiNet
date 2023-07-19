@@ -156,10 +156,13 @@ def make_constraint_set(constraints: ConstraintsOrList):
 
 
 class ConstraiNetLayer(Module):
-    def __init__(self, constraints: ConstraintsOrList,
+    def __init__(self, constraints: Union[ConstraintsOrList, ConstraintSet],
                  mode: Literal['ray_shift', 'center_projection'] = 'ray_shift'):
         super().__init__()
-        self.constraint_set = make_constraint_set(constraints)
+        if isinstance(constraints, ConstraintSet):
+            self.constraint_set = constraints
+        else:
+            self.constraint_set = make_constraint_set(constraints)
         self.n_features = self.constraint_set.n_features
         self.mode = mode
         self.__init_implementation()

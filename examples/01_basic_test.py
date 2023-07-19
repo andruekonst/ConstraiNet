@@ -2,20 +2,17 @@ from dataclasses import dataclass
 from typing import Literal
 import numpy as np
 import torch
-from pathlib import Path
 from matplotlib import pyplot as plt
-from constrainet.layers.fused.qc_diameter import QCProjectionCenterDiameterNN
-from constrainet.problems.linear_constraints import (
-    LinearConstraintsGenerator,
+from constrainet import (
     LinearConstraints,
     LinearEqualityConstraints,
-)
-from constrainet.problems.quadratic_constraints import (
     QuadraticConstraints,
-    QuadraticConstraintsGenerator,
-    quad_forms,
+    ConstraiNetLayer,
+    DenseConstraiNet
 )
-from constrainet.models.constrainet import ConstraiNetLayer, DenseConstraiNet
+# utilities for problem and point generation
+from constrainet.problems.linear_constraints import LinearConstraintsGenerator
+from constrainet.problems.quadratic_constraints import QuadraticConstraintsGenerator
 from constrainet.layers.pivot_utils import BBox, find_polytope_bbox, generate_in_bbox
 
 

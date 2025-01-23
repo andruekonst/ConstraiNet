@@ -194,7 +194,7 @@ class ConstraiNetLayer(Module):
             impl = Cls(
                 torch.tensor(self.constraint_set.linear.A, dtype=torch.double),
                 torch.tensor(self.constraint_set.linear.b, dtype=torch.double),
-                torch.tensor(self.constraint_set.interior_point, dtype=torch.double),
+                torch.tensor(np.asarray(self.constraint_set.interior_point), dtype=torch.double),
                 onto_edge=self.onto_edge,
             )
         elif self.constraint_set.is_quadratic():

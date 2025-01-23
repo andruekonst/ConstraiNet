@@ -264,9 +264,9 @@ class CenterDiameterBasedNN(torch.nn.Module):
                  normalize_rays: bool = True,
                  onto_edge: bool = False):
         super().__init__()
-        self.A = A
-        self.b = b
-        self.point = point
+        self.register_buffer('A', A)
+        self.register_buffer('b', b)
+        self.register_buffer('point', point)
         self.normalize_rays = normalize_rays
         self.onto_edge = onto_edge
 
@@ -580,9 +580,9 @@ class ProjectionCenterDiameterNN(torch.nn.Module):
                  point: torch.Tensor,
                  onto_edge: bool = False):
         super().__init__()
-        self.A = A
-        self.b = b
-        self.point = point
+        self.register_buffer('A', A)
+        self.register_buffer('b', b)
+        self.register_buffer('point', point)
         self.onto_edge = onto_edge
 
     def get_max_length(self, points: torch.Tensor,
